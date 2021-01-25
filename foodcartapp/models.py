@@ -16,7 +16,7 @@ class Order(models.Model):
         verbose_name_plural = 'заказы'
 
 
-class Products_in_order(models.Model):
+class Products_In_Order(models.Model):
     product = models.ForeignKey(
         'Product', verbose_name='Продукт', related_name='products', on_delete=models.CASCADE)
     order = models.ForeignKey(
