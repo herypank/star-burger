@@ -8,11 +8,20 @@ from .models import ProductCategory
 from .models import Restaurant
 from .models import RestaurantMenuItem
 from .models import Order
+from .models import Products_in_order
+
+
+class Products_in_orderInline(admin.TabularInline):
+    model = Products_in_order
+    fields = ['product', 'order', 'quantity']
+
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    pass
+    inlines = [
+        Products_in_orderInline,
+    ]
 
 
 class RestaurantMenuItemInline(admin.TabularInline):

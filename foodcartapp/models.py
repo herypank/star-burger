@@ -16,6 +16,14 @@ class Order(models.Model):
         verbose_name_plural = 'заказы'
 
 
+class Products_in_order(models.Model):
+    product = models.ForeignKey(
+        'Product', verbose_name='Продукт', related_name='products', on_delete=models.CASCADE)
+    order = models.ForeignKey(
+        'Order', verbose_name='Заказ', related_name='orders', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField('Количество')
+
+
 class Restaurant(models.Model):
     name = models.CharField('название', max_length=50)
     address = models.CharField('адрес', max_length=100, blank=True)
@@ -27,7 +35,6 @@ class Restaurant(models.Model):
     class Meta:
         verbose_name = 'ресторан'
         verbose_name_plural = 'рестораны'
-    
 
 
 class ProductQuerySet(models.QuerySet):
