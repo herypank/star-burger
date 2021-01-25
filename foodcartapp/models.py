@@ -1,4 +1,19 @@
 from django.db import models
+from phonenumber_field.modelfields import PhoneNumberField
+
+
+class Order(models.Model):
+    delivery_address = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    phone_number = PhoneNumberField()
+
+    def __str__(self):
+        return f"{self.first_name} {self.delivery_address}"
+
+    class Meta:
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
 
 
 class Restaurant(models.Model):
@@ -12,6 +27,7 @@ class Restaurant(models.Model):
     class Meta:
         verbose_name = 'ресторан'
         verbose_name_plural = 'рестораны'
+    
 
 
 class ProductQuerySet(models.QuerySet):
