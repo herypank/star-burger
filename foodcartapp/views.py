@@ -1,8 +1,9 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
-import json
 
 from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Product
 from .models import Order
@@ -61,9 +62,13 @@ def product_list_api(request):
     })
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def register_order(request):
-    decoded_order = json.loads(request.body.decode())
+    decoded_order = request.data
+    products = decoded_order.get('products', None)
+    if isinstance(products, str) or not products:
+        content = {'Error': 'HTTP_400_BAD_REQUEST'}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
     order = Order.objects.get_or_create(
         delivery_address=decoded_order['address'],
         first_name=decoded_order['firstname'],
@@ -76,4 +81,6 @@ def register_order(request):
             order=order,
             quantity=product['quantity'],
         )
-    return JsonResponse({})
+    print(decoded_order)
+    return Response(decoded_order)
+
