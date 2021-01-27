@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
+from django.core.exceptions import ObjectDoesNotExist 
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -64,23 +65,51 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
-    decoded_order = request.data
-    products = decoded_order.get('products', None)
-    if isinstance(products, str) or not products:
-        content = {'Error': 'HTTP_400_BAD_REQUEST'}
+    order_serialized = request.data
+
+    products_serialized = order_serialized.get('products', None)
+    if isinstance(products_serialized, str) or not products_serialized:
+        content = {'Error': 'invalid products. HTTP_400_BAD_REQUEST'}
         return Response(content, status=status.HTTP_400_BAD_REQUEST)
+    products = []
+    try:
+        for product in products_serialized:
+            products.append({
+                'product': Product.objects.get(pk=product['product']),
+                'quantity': product['quantity']
+                })
+    except (ObjectDoesNotExist, ValueError):
+        content = {
+            'Error': 'Cannot found product, invalid id. HTTP_400_BAD_REQUEST'}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+    first_name = order_serialized.get('firstname', None)
+    if isinstance(first_name, list) or not first_name:
+        content = {'Error': 'invalid firstname. HTTP_400_BAD_REQUEST'}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+    last_name = order_serialized.get('lastname', None)
+    if isinstance(last_name, list) or not last_name:
+        content = {'Error': 'invalid lastname. HTTP_400_BAD_REQUEST'}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+    phone_number = order_serialized.get('phonenumber', None)
+    if isinstance(phone_number, list) or not phone_number:
+        content = {'Error': 'invalid phonenumber. HTTP_400_BAD_REQUEST'}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
     order = Order.objects.get_or_create(
-        delivery_address=decoded_order['address'],
-        first_name=decoded_order['firstname'],
-        last_name=decoded_order['lastname'],
-        phone_number=decoded_order["phonenumber"],
+        delivery_address=order_serialized['address'],
+        first_name=first_name,
+        last_name=last_name,
+        phone_number=phone_number,
         )[0]
-    for product in decoded_order['products']:
+    for product in products:
         Products_In_Order.objects.create(
-            product=Product.objects.get(pk=product['product']),
+            product=product['product'],
             order=order,
             quantity=product['quantity'],
         )
-    print(decoded_order)
-    return Response(decoded_order)
+    print(order_serialized)
+    return Response(order_serialized)
 
