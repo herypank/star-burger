@@ -1,10 +1,13 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.postgres.fields import ArrayField
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from rest_framework.serializers import Serializer
+from rest_framework.serializers import CharField, ListField
 
 from .models import Product
 from .models import Order
@@ -63,55 +66,36 @@ def product_list_api(request):
     })
 
 
-def validate(order_serialized):
-    errors = []
-    products = []
-    products_serialized = order_serialized.get('products', None)
+class ApplicationSerializer(Serializer):
+    firstname = CharField()
+    lastname = CharField()
+    phonenumber = CharField()
+    products = ListField()
 
-    if isinstance(products_serialized, str) or not products_serialized:
-        errors.append('Error invalid products.')
-    else:
+    def validate_products(self, value):
         try:
-            for product in products_serialized:
-                products.append({
-                    'product': Product.objects.get(pk=product['product']),
-                    'quantity': product['quantity']
-                    })
+            for product in value:
+                    Product.objects.get(pk=product['product'])
         except (ObjectDoesNotExist, ValueError):
-            errors.append('Error Cannot found product, invalid id.')
-
-    first_name = order_serialized.get('firstname', None)
-    if isinstance(first_name, list) or not first_name:
-        errors.append('Error invalid firstname.')
-
-    last_name = order_serialized.get('lastname', None)
-    if isinstance(last_name, list) or not last_name:
-        errors.append('Error invalid lastname.')
-
-    phone_number = order_serialized.get('phonenumber', None)
-    if isinstance(phone_number, list) or not phone_number:
-        errors.append('Error invalid phonenumber.')
-
-    if errors:
-        raise ValidationError(errors)
-
-    return products, first_name, last_name, phone_number
+            raise ValidationError('Error Cannot found product, invalid id.')
+        return value
 
 
 @api_view(['POST'])
 def register_order(request):
     order_serialized = request.data
-    products, first_name, last_name, phone_number = validate(order_serialized)
+    serializer = ApplicationSerializer(data=order_serialized)
+    serializer.is_valid(raise_exception=True)  # выкинет ValidationError
 
     order = Order.objects.get_or_create(
         delivery_address=order_serialized['address'],
-        first_name=first_name,
-        last_name=last_name,
-        phone_number=phone_number,
+        first_name=order_serialized['firstname'],
+        last_name=order_serialized['lastname'],
+        phone_number=order_serialized['phonenumber'],
         )[0]
-    for product in products:
+    for product in order_serialized['products']:
         Products_In_Order.objects.create(
-            product=product['product'],
+            product=Product.objects.get(pk=product['product']),
             order=order,
             quantity=product['quantity'],
         )
