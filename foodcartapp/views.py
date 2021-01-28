@@ -1,7 +1,6 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.postgres.fields import ArrayField
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -70,9 +69,12 @@ class ApplicationSerializer(Serializer):
     firstname = CharField()
     lastname = CharField()
     phonenumber = CharField()
+    address = CharField()
     products = ListField()
 
     def validate_products(self, value):
+        if not value:
+            raise ValidationError('Error empty products')
         try:
             for product in value:
                     Product.objects.get(pk=product['product'])
