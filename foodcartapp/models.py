@@ -3,13 +3,13 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 
 class Order(models.Model):
-    delivery_address = models.CharField(max_length=255)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    phone_number = PhoneNumberField()
+    address = models.CharField(max_length=255)
+    firstname = models.CharField(max_length=255)
+    lastname = models.CharField(max_length=255)
+    phonenumber = PhoneNumberField()
 
     def __str__(self):
-        return f"{self.first_name} {self.delivery_address}"
+        return f"{self.firstname} {self.address}"
 
     class Meta:
         verbose_name = 'заказ'

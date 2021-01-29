@@ -5,8 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from rest_framework.serializers import Serializer
-from rest_framework.serializers import CharField, ListField
+from rest_framework.serializers import Serializer, ModelSerializer
+from rest_framework.serializers import CharField, IntegerField, ListField
 
 from .models import Product
 from .models import Order
@@ -65,41 +65,56 @@ def product_list_api(request):
     })
 
 
-class ApplicationSerializer(Serializer):
-    firstname = CharField()
-    lastname = CharField()
-    phonenumber = CharField()
-    address = CharField()
-    products = ListField()
+class ProductsSerializer(Serializer):
+    product = IntegerField(min_value=1)
+    quantity = IntegerField(min_value=1)
+
+    def validate_product(self, value):
+        try:
+            Product.objects.get(pk=value)
+        except ObjectDoesNotExist:
+            raise ValidationError('Error Cannot found product, invalid id.')
+        return value
+
+
+class ApplicationSerializer(ModelSerializer):
+    products = ListField(
+        child=ProductsSerializer()
+    )
+
+    class Meta:
+        model = Order
+        fields = [
+            'firstname',
+            'lastname',
+            'phonenumber',
+            'address',
+            'products'
+            ]
 
     def validate_products(self, value):
         if not value:
-            raise ValidationError('Error empty products')
-        try:
-            for product in value:
-                    Product.objects.get(pk=product['product'])
-        except (ObjectDoesNotExist, ValueError):
-            raise ValidationError('Error Cannot found product, invalid id.')
+            raise ValidationError('Ошибка пустой список продуктов')
         return value
 
 
 @api_view(['POST'])
 def register_order(request):
-    order_serialized = request.data
-    serializer = ApplicationSerializer(data=order_serialized)
-    serializer.is_valid(raise_exception=True)  # выкинет ValidationError
+    serializer = ApplicationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
+    products = serializer.validated_data['products']
     order = Order.objects.get_or_create(
-        delivery_address=order_serialized['address'],
-        first_name=order_serialized['firstname'],
-        last_name=order_serialized['lastname'],
-        phone_number=order_serialized['phonenumber'],
+        address=serializer.validated_data['address'],
+        firstname=serializer.validated_data['firstname'],
+        lastname=serializer.validated_data['lastname'],
+        phonenumber=serializer.validated_data['phonenumber'],
         )[0]
-    for product in order_serialized['products']:
+
+    for product in products:
         Products_In_Order.objects.create(
             product=Product.objects.get(pk=product['product']),
             order=order,
             quantity=product['quantity'],
         )
-    print(order_serialized)
-    return Response(order_serialized)
+    return Response(serializer.validated_data)
